@@ -42,7 +42,8 @@ export class RemotePlayer {
 
   setState(p, yaw, flashlightOn) {
     this.cameraPos.set(p[0], p[1], p[2]);
-    this.targetPos.set(p[0], 0, p[2]);
+    // Feet at camera height minus eye height, so you see your friend jump.
+    this.targetPos.set(p[0], Math.max(0, p[1] - 1.7), p[2]);
     this.targetYaw = yaw;
     this.flashlightOn = flashlightOn;
     this.lamp.visible = flashlightOn;

@@ -12,6 +12,8 @@
       background: #000;
       height: 100%;
       font-family: monospace;
+      touch-action: none; /* stop mobile scroll/zoom stealing game gestures */
+      overscroll-behavior: none;
     }
     #app {
       width: 100vw;
@@ -138,6 +140,55 @@
     }
     .panel { text-align: center; }
     .status { color: #667; min-height: 1.4em; }
+    /* --- Touch controls (shown only on touch devices) --- */
+    #touch-ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+    }
+    #joystick {
+      position: absolute;
+      left: 28px;
+      bottom: 32px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      pointer-events: auto;
+    }
+    #joystick-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 54px;
+      height: 54px;
+      margin: -27px 0 0 -27px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .touch-btn {
+      position: absolute;
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: rgba(255, 255, 255, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .touch-btn:active { background: rgba(180, 50, 50, 0.25); }
+    #btn-jump { right: 30px; bottom: 40px; }
+    #btn-flash { right: 46px; bottom: 136px; font-size: 26px; }
     #death-screen { background: rgba(10, 0, 0, 0.92); }
     #death-screen h1 { color: #d22; }
     #win-screen h1 { color: #4a5; }
@@ -145,6 +196,11 @@
 </head>
 <body>
   <div id="app"></div>
+  <div id="touch-ui" class="hidden">
+    <div id="joystick"><div id="joystick-knob"></div></div>
+    <div id="btn-jump" class="touch-btn">JUMP</div>
+    <div id="btn-flash" class="touch-btn">🔦</div>
+  </div>
   <div id="vignette"></div>
   <div id="crosshair"></div>
   <div id="objective"></div>
@@ -176,7 +232,8 @@
     </div>
 
     <p>&nbsp;</p>
-    <p>WASD — move &nbsp;|&nbsp; SHIFT — run &nbsp;|&nbsp; Mouse — look &nbsp;|&nbsp; F — flashlight &nbsp;|&nbsp; ESC — pause</p>
+    <p id="controls-desktop">WASD — move &nbsp;|&nbsp; SHIFT — run &nbsp;|&nbsp; SPACE — jump &nbsp;|&nbsp; Mouse — look &nbsp;|&nbsp; F — flashlight &nbsp;|&nbsp; ESC — pause</p>
+    <p id="controls-touch" class="hidden">Joystick — move (push to the edge to run) &nbsp;|&nbsp; Drag — look &nbsp;|&nbsp; 🔦 / JUMP buttons</p>
     <p style="color:#664">Warning: the light helps you see. It also helps IT see you.</p>
   </div>
 

@@ -9,13 +9,19 @@ needed.
 
 ## Controls
 
+**Computer:**
+
 | Key | Action |
 | --- | --- |
 | WASD | Move |
 | Shift | Run |
+| Space | Jump |
 | Mouse | Look |
 | F | Flashlight — helps you see, but helps IT see you |
 | ESC | Pause / release mouse |
+
+**Phone / tablet:** on-screen joystick to move (push it to the edge to run),
+drag anywhere else to look, plus JUMP and 🔦 buttons.
 
 ## Run locally
 

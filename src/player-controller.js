@@ -5,6 +5,9 @@ const PLAYER_HEIGHT = 1.7;
 const PLAYER_RADIUS = 0.35;
 const WALK_SPEED = 3.2; // m/s — deliberate, grounded pace
 const RUN_SPEED = 5.0;  // hold Shift — slightly faster than the monster's chase
+const GRAVITY = 22;
+const JUMP_SPEED = 6;   // ~0.8m hop — enough to feel alive, not enough to escape
+const CEILING_Y = 2.5;  // eye height can't pass this (ceiling is at 3m)
 
 /**
  * First-person controller: WASD movement, pointer-lock mouse look,
@@ -21,6 +24,15 @@ export class PlayerController {
 
     this.velocity = new THREE.Vector3();
     this.keys = { forward: false, back: false, left: false, right: false, sprint: false };
+
+    this.verticalVel = 0;
+    this.grounded = true;
+
+    // Mobile mode: no pointer lock; movement comes from the on-screen
+    // joystick (set by TouchControls) and look from touch-drag.
+    this.mobile = false;
+    this.mobileMove = new THREE.Vector2(0, 0); // x = strafe, y = forward, each -1..1
+    this.mobileSprint = false;
 
     // --- Flashlight: spotlight + its target, both parented to the camera
     // so the beam always points where the player looks.
@@ -55,10 +67,11 @@ export class PlayerController {
       case 'KeyA': case 'ArrowLeft': this.keys.left = pressed; break;
       case 'KeyD': case 'ArrowRight': this.keys.right = pressed; break;
       case 'ShiftLeft': case 'ShiftRight': this.keys.sprint = pressed; break;
+      case 'Space':
+        if (pressed && this.active) this.jump();
+        break;
       case 'KeyF':
-        if (pressed && this.controls.isLocked) {
-          this.flashlight.visible = !this.flashlight.visible;
-        }
+        if (pressed && this.active) this.toggleFlashlight();
         break;
     }
   }
@@ -69,6 +82,22 @@ export class PlayerController {
 
   get isLocked() {
     return this.controls.isLocked;
+  }
+
+  /** Input is live: pointer-locked on desktop, or in mobile mode. */
+  get active() {
+    return this.controls.isLocked || this.mobile;
+  }
+
+  jump() {
+    if (this.grounded) {
+      this.verticalVel = JUMP_SPEED;
+      this.grounded = false;
+    }
+  }
+
+  toggleFlashlight() {
+    this.flashlight.visible = !this.flashlight.visible;
   }
 
   /** Axis-aligned box around the player's current position. */
@@ -87,24 +116,25 @@ export class PlayerController {
   }
 
   update(dt) {
-    if (!this.controls.isLocked) return;
+    if (!this.active) return;
 
     // Build the desired move direction in camera space (XZ only).
+    // Keyboard and joystick are additive; whichever is in use wins.
     const input = new THREE.Vector3(
-      (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0),
+      (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0) + this.mobileMove.x,
       0,
-      (this.keys.back ? 1 : 0) - (this.keys.forward ? 1 : 0)
+      (this.keys.back ? 1 : 0) - (this.keys.forward ? 1 : 0) - this.mobileMove.y
     );
 
     const pos = this.camera.position;
 
     if (input.lengthSq() > 0) {
-      input.normalize();
+      if (input.lengthSq() > 1) input.normalize();
 
       // Rotate input by the camera's yaw so W is always "where I'm facing".
       const yaw = new THREE.Euler(0, 0, 0, 'YXZ');
       yaw.setFromQuaternion(this.camera.quaternion);
-      const speed = this.keys.sprint ? RUN_SPEED : WALK_SPEED;
+      const speed = (this.keys.sprint || this.mobileSprint) ? RUN_SPEED : WALK_SPEED;
       const move = new THREE.Vector3(input.x, 0, input.z)
         .applyEuler(new THREE.Euler(0, yaw.y, 0))
         .multiplyScalar(speed * dt);
@@ -120,8 +150,20 @@ export class PlayerController {
       if (!this._collides(nextZ)) pos.z = nextZ.z;
     }
 
-    // Lock the eye height (no jumping/crouching in Phase 1).
-    pos.y = PLAYER_HEIGHT;
+    // Vertical: gravity + jumping. Ground is fixed eye height.
+    this.verticalVel -= GRAVITY * dt;
+    pos.y += this.verticalVel * dt;
+    if (pos.y <= PLAYER_HEIGHT) {
+      pos.y = PLAYER_HEIGHT;
+      this.verticalVel = 0;
+      this.grounded = true;
+    } else {
+      this.grounded = false;
+      if (pos.y > CEILING_Y) {
+        pos.y = CEILING_Y;
+        this.verticalVel = Math.min(0, this.verticalVel);
+      }
+    }
   }
 
   dispose() {

@@ -5,7 +5,10 @@ import { Monster } from './monster.js';
 import { HorrorAudio } from './audio.js';
 import { Network } from './network.js';
 import { RemotePlayer } from './remote-player.js';
+import { TouchControls } from './touch-controls.js';
 import { cellToWorld, worldToCell } from './map.js';
+
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
 // --- DOM ---
 const app = document.getElementById('app');
@@ -48,6 +51,11 @@ const camera = new THREE.PerspectiveCamera(
 level.scene.add(camera); // camera must be in the scene so the flashlight renders
 
 const player = new PlayerController(camera, renderer.domElement, level.colliders);
+const touchControls = IS_TOUCH ? new TouchControls(player, camera) : null;
+if (IS_TOUCH) {
+  document.getElementById('controls-desktop').classList.add('hidden');
+  document.getElementById('controls-touch').classList.remove('hidden');
+}
 
 // 'menu' | 'playing' | 'dying' | 'dead' | 'escaped'
 let gameState = 'menu';
@@ -165,7 +173,13 @@ function startGame(m) {
   setObjective('Find the key.');
   audio.resume();
   overlay.classList.add('hidden');
-  player.lock();
+  if (IS_TOUCH) {
+    // No pointer lock on mobile — the touch UI drives everything.
+    player.mobile = true;
+    touchControls.show();
+  } else {
+    player.lock();
+  }
 }
 
 // --- Pointer lock & screens ---
@@ -369,6 +383,9 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Debug handle for automated tests (not part of the game).
+window.__game = { player, camera, monster, startGame };
 
 // --- Main loop ---
 const clock = new THREE.Clock();
