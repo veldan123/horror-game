@@ -55,6 +55,29 @@ const touchControls = IS_TOUCH ? new TouchControls(player, camera) : null;
 if (IS_TOUCH) {
   document.getElementById('controls-desktop').classList.add('hidden');
   document.getElementById('controls-touch').classList.remove('hidden');
+
+  // Fullscreen toggle. iPhones don't support the Fullscreen API at all,
+  // so the button hides itself there rather than doing nothing.
+  const fsBtn = document.getElementById('btn-fullscreen');
+  const root = document.documentElement;
+  const canFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (canFullscreen) {
+    fsBtn.classList.remove('hidden');
+    fsBtn.addEventListener('click', () => {
+      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+      if (isFs) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        (root.requestFullscreen || root.webkitRequestFullscreen).call(root)
+          .catch?.(() => {});
+        // Landscape suits the joystick layout; ignore if the device refuses.
+        screen.orientation?.lock?.('landscape').catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      fsBtn.textContent = document.fullscreenElement ? '✕' : '⛶';
+    });
+  }
 }
 
 // 'menu' | 'playing' | 'dying' | 'dead' | 'escaped'
